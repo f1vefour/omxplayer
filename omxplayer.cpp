@@ -57,6 +57,7 @@ extern "C" {
 #include "OMXPlayerSubtitles.h"
 #include "DllOMX.h"
 #include "Srt.h"
+#include "Cec.h"
 
 #include <string>
 #include <utility>
@@ -372,6 +373,8 @@ int main(int argc, char *argv[])
     atexit(restore_fl);
   }
 
+  SimpleCEC cec;
+
   std::string            m_filename;
   double                m_incr                = 0;
   CRBP                  g_RBP;
@@ -662,6 +665,28 @@ int main(int argc, char *argv[])
     
     while((ch[chnum] = getchar()) != EOF) chnum++;
     if (chnum > 1) ch[0] = ch[chnum - 1] | (ch[chnum - 2] << 8);
+
+    if(!chnum)
+    {
+      switch(cec.getKeyPress()) {
+        case CEC_USER_CONTROL_CODE_PLAY:
+        case CEC_USER_CONTROL_CODE_PAUSE:
+          ch[0] = 'p';
+          break;
+        case CEC_USER_CONTROL_CODE_CHANNEL_UP:
+          ch[0] = 'f';
+          break;
+        case CEC_USER_CONTROL_CODE_CHANNEL_DOWN:
+          ch[0] = 'd';
+          break;
+        case CEC_USER_CONTROL_CODE_BACKWARD:
+          ch[0] = 0x5b44;
+          break;
+        case CEC_USER_CONTROL_CODE_FORWARD:
+          ch[0] = 0x5b43;
+          break;
+      }
+    }
 
     switch(ch[0])
     {
