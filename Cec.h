@@ -275,16 +275,16 @@ private:
 
   static int CecKeyPress(void *cbParam, const cec_keypress key)
   {
-    auto self = (SimpleCEC*) cbParam;
-
-    if(!key.duration || key.keycode == CEC_USER_CONTROL_CODE_STOP)
-      self->m_keyPress = key.keycode;
-
     return 0;
   }
 
   static int CecCommand(void *cbParam, const cec_command command)
   {
+    if(command.opcode == CEC_OPCODE_USER_CONTROL_PRESSED)
+    {
+      auto self = (SimpleCEC*) cbParam;
+      self->m_keyPress = command.parameters[0];
+    }
     return 0;
   }
 
