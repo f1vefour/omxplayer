@@ -373,8 +373,6 @@ int main(int argc, char *argv[])
     atexit(restore_fl);
   }
 
-  SimpleCEC cec;
-
   std::string            m_filename;
   double                m_incr                = 0;
   CRBP                  g_RBP;
@@ -555,6 +553,8 @@ int main(int argc, char *argv[])
   m_av_clock = new OMXClock();
 
   m_thread_player = true;
+
+  SimpleCEC cec;
 
   if(!m_omx_reader.Open(m_filename.c_str(), m_dump_format))
     goto do_exit;
@@ -839,6 +839,12 @@ int main(int argc, char *argv[])
       case '+':
         m_player_audio.SetCurrentVolume(m_player_audio.GetCurrentVolume() + 50);
         printf("Current Volume: %.2fdB\n", m_player_audio.GetCurrentVolume() / 100.0f);
+        break;
+      case 'x':
+        m_player_subtitles.On();
+        break;
+      case 'c':
+        m_player_subtitles.Off();
         break;
       default:
         break;

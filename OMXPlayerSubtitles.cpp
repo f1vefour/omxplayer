@@ -248,6 +248,45 @@ RenderLoop(const string& font_path,
       [&](Message::Stop&&)
       {
         exit = true;
+      },
+      [&](Message::On&&)
+      {
+        if(!showing)
+        {
+          if(have_next)
+          {
+            printf("showing %i\n", next_index);
+            subtitles[next_index].start = INT_MIN;
+            subtitles[next_index].stop = INT_MAX;
+            auto nnext = next_index+1;
+            if(nnext != subtitles.size())
+            {
+              subtitles[nnext].start = INT_MAX;
+              subtitles[nnext].stop = INT_MAX;
+            }
+          }
+        }
+        else
+        {
+          current_stop = INT_MIN;
+          if(have_next)
+          {
+            printf("showing %i\n", next_index);
+            subtitles[next_index].start = GetCurrentTime() + 40;
+            subtitles[next_index].stop = INT_MAX;
+            auto nnext = next_index+1;
+            if(nnext != subtitles.size())
+            {
+              subtitles[nnext].start = INT_MAX;
+              subtitles[nnext].stop = INT_MAX;
+            }
+          }
+        }
+      },
+      [&](Message::Off&&)
+      {
+        current_stop = INT_MIN;
+        printf("hiding %i\n", next_index-1);
       });
 
     if(exit) break;
@@ -258,7 +297,7 @@ RenderLoop(const string& font_path,
 
     if(have_next && subtitles[next_index].stop <= now)
     {
-      // printf("Subtitle %i had to be unprepared\n", next_index);
+      printf("Subtitle %i had to be unprepared\n", next_index);
       renderer.unprepare();
 
       ++next_index;

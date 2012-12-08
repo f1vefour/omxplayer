@@ -83,6 +83,18 @@ public:
     return m_use_external_subtitles;
   }
 
+  void On() BOOST_NOEXCEPT
+  {
+    assert(m_open);
+    m_mailbox.send(Message::On{});
+  }
+
+  void Off() BOOST_NOEXCEPT
+  {
+    assert(m_open);
+    m_mailbox.send(Message::Off{});
+  }
+
   bool AddPacket(OMXPacket *pkt, size_t stream_index) BOOST_NOEXCEPT;
 
 private:
@@ -100,6 +112,8 @@ private:
     {
       int time;
     };
+    struct On {};
+    struct Off {};
     struct SetDelay
     {
       int value;
@@ -126,6 +140,8 @@ private:
           Message::Flush,
           Message::Push,
           Message::Seek,
+          Message::On,
+          Message::Off,
           Message::SetPaused,
           Message::SetDelay>                    m_mailbox;
   bool                                          m_paused;

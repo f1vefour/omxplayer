@@ -42,6 +42,7 @@ public:
   SubtitleRenderer& operator=(const SubtitleRenderer&) = delete;
   SubtitleRenderer(int level,
                    const std::string& font_path,
+                   const std::string& italic_font_path,
                    float font_size,
                    float margin_left,
                    float margin_bottom,
@@ -74,22 +75,19 @@ public:
   }
 
 private:
-  struct InternalChar {
-    char32_t codepoint;
-    bool italic;
-  };
-
   struct InternalGlyph {
     int advance;
   };
 
   static void draw_text(VGFont font, VGFont italic_font,
-                        const std::vector<InternalChar>& text,
+                        const std::vector<char32_t>& text,
                         int x, int y,
                         unsigned int lightness);
 
   void destroy();
-  void initialize_fonts(const std::string& font_name, unsigned int font_size);
+  void initialize_fonts(const std::string& font_path,
+                        const std::string& italic_font_path,
+                        unsigned int font_size);
   void destroy_fonts();
   void initialize_vg();
   void destroy_vg();
@@ -102,10 +100,10 @@ private:
   void clear() BOOST_NOEXCEPT;
   void draw() BOOST_NOEXCEPT;
   void swap_buffers() BOOST_NOEXCEPT;
-  void prepare_glyphs(const std::vector<InternalChar>& text);
+  void prepare_glyphs(const std::vector<char32_t>& text);
   void load_glyph(char32_t codepoint);
-  int get_text_width(const std::vector<InternalChar>& text);
-  std::vector<InternalChar> get_internal_chars(const std::string& str);
+  int get_text_width(const std::vector<char32_t>& text);
+  std::vector<char32_t> get_internal_chars(const std::string& str);
 
   bool prepared_;
   DISPMANX_ELEMENT_HANDLE_T dispman_element_;
@@ -119,9 +117,10 @@ private:
   VGFont vg_font_italic_border_;
   FT_Library ft_library_;
   FT_Face ft_face_;
+  FT_Face ft_face_italic_;
   FT_Stroker ft_stroker_;
   std::unordered_map<char32_t,InternalGlyph> glyphs_;
-  std::vector<std::vector<InternalChar>> internal_lines_;
+  std::vector<std::vector<char32_t>> internal_lines_;
   std::vector<std::pair<int,int>> line_positions_;
   std::vector<int> line_widths_;
   int line_height_;

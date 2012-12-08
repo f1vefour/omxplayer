@@ -275,6 +275,7 @@ private:
 
   static int CecKeyPress(void *cbParam, const cec_keypress key)
   {
+    // Behaves oddly, parsing raw command instead
     return 0;
   }
 
