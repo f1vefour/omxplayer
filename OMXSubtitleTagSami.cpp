@@ -197,6 +197,9 @@ void COMXSubtitleTagSami::ConvertLine(COMXOverlayText* pOverlay, const char* lin
   if( strUTF8[strUTF8.size()-1] == '\n' )
     strUTF8.erase(strUTF8.size()-1, 1);
 
+  boost::algorithm::replace_all(strUTF8, "\\n", "\n");
+  boost::algorithm::replace_all(strUTF8, "\\N", "\n");
+
   // add a new text element to our container
   pOverlay->AddElement(new COMXOverlayText::CElementText(strUTF8.c_str()));
 }
