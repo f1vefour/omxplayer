@@ -30,6 +30,7 @@
 #include "utils/Enforce.h"
 #include "utils/Clamp.h"
 
+#include <bcm_host.h>
 #include <VG/vgu.h>
 #include <cassert>
 #include <algorithm>
