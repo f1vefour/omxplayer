@@ -534,7 +534,6 @@ int main(int argc, char *argv[])
 
   if(!m_has_external_subtitles && !filename_is_URL)
   {
-    auto pos = m_filename.find_last_of(".");
     auto subtitles_path = m_filename.substr(0, m_filename.find_last_of(".")) +
                           ".srt";
 

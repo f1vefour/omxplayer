@@ -475,8 +475,8 @@ bool OMXPlayerSubtitles::AddPacket(OMXPacket *pkt, size_t stream_index) BOOST_NO
     return true;
   }
 
-  if(pkt->hints.codec != CODEC_ID_TEXT && 
-     pkt->hints.codec != CODEC_ID_SSA)
+  if(pkt->hints.codec != AV_CODEC_ID_SUBRIP && 
+     pkt->hints.codec != AV_CODEC_ID_SSA)
   {
     return true;
   }
