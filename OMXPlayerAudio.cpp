@@ -334,8 +334,6 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
     printf("C : %d %d %d %d %d\n", m_hints.codec, m_hints.channels, m_hints.samplerate, m_hints.bitrate, m_hints.bitspersample);
     printf("N : %d %d %d %d %d\n", pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
 
-    m_av_clock->OMXPause();
-
     CloseDecoder();
     CloseAudioCodec();
 
@@ -348,11 +346,6 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
     m_player_error = OpenDecoder();
     if(!m_player_error)
       return false;
-
-    m_av_clock->OMXStateExecute();
-    m_av_clock->OMXReset();
-    m_av_clock->OMXResume();
-
   }
 
   if(!((unsigned long)m_decoder->GetSpace() > pkt->size))
@@ -363,7 +356,7 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
     if(pkt->dts != DVD_NOPTS_VALUE)
       m_iCurrentPts = pkt->dts;
 
-    m_av_clock->SetPTS(m_iCurrentPts);
+    // m_av_clock->SetPTS(m_iCurrentPts);
 
     const uint8_t *data_dec = pkt->data;
     int            data_len = pkt->size;
@@ -417,7 +410,7 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
       HandleSyncError(0, m_iCurrentPts);
     }
 
-    m_av_clock->SetAudioClock(m_iCurrentPts);
+    // m_av_clock->SetAudioClock(m_iCurrentPts);
     return true;
   }
   else
@@ -487,8 +480,14 @@ void OMXPlayerAudio::Flush()
   }
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_cached_size = 0;
+
+  m_av_clock->Lock();
+  m_av_clock->OMXStop(false);
   if(m_decoder)
     m_decoder->Flush();
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
+
   m_syncclock = true;
   UnLockDecoder();
   UnLock();
@@ -609,6 +608,9 @@ bool OMXPlayerAudio::OpenDecoder()
   if(!m_passthrough && m_use_hw_decode)
     m_hw_decode = COMXAudio::HWDecode(m_hints.codec);
 
+  m_av_clock->Lock();
+  m_av_clock->OMXStop(false);
+
   if(m_passthrough || m_use_hw_decode)
   {
     if(m_passthrough)
@@ -634,9 +636,7 @@ bool OMXPlayerAudio::OpenDecoder()
   
   if(!bAudioRenderOpen)
   {
-    delete m_decoder; 
-    m_decoder = NULL;
-    return false;
+    CloseDecoder();
   }
   else
   {
@@ -652,14 +652,24 @@ bool OMXPlayerAudio::OpenDecoder()
     }
   }
 
-  return true;
+  m_av_clock->OMXStateExecute(false);
+  m_av_clock->HasAudio(bAudioRenderOpen);
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
+
+  return bAudioRenderOpen;
 }
 
 bool OMXPlayerAudio::CloseDecoder()
 {
+  m_av_clock->Lock();
+  m_av_clock->OMXStop(false);
   if(m_decoder)
     delete m_decoder;
   m_decoder   = NULL;
+  m_av_clock->HasAudio(false);
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
   return true;
 }
 

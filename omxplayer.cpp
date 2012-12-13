@@ -187,7 +187,7 @@ void SetSpeed(int iSpeed)
   else if(m_av_clock->OMXPlaySpeed() == OMX_PLAYSPEED_PAUSE && iSpeed != OMX_PLAYSPEED_PAUSE)
     m_Pause = false;
 
-  m_av_clock->OMXSpeed(iSpeed);
+  m_av_clock->OMXSetSpeed(iSpeed);
 }
 
 void FlushStreams(double pts)
@@ -210,8 +210,8 @@ void FlushStreams(double pts)
     m_omx_pkt = NULL;
   }
 
-  if(pts != DVD_NOPTS_VALUE)
-    m_av_clock->OMXUpdateClock(pts);
+  // if(pts != DVD_NOPTS_VALUE)
+  //   m_av_clock->OMXUpdateClock(pts);
 
 //  if(m_av_clock)
 //  {
@@ -647,8 +647,8 @@ int main(int argc, char *argv[])
     goto do_exit;
 
   m_av_clock->SetSpeed(DVD_PLAYSPEED_NORMAL);
-  m_av_clock->OMXStateExecute();
-  m_av_clock->OMXStart(0.0);
+  // m_av_clock->OMXStateExecute();
+  // m_av_clock->OMXStart();
 
   struct timespec starttime, endtime;
 
@@ -819,7 +819,7 @@ int main(int argc, char *argv[])
         if(m_Pause)
         {
           SetSpeed(OMX_PLAYSPEED_PAUSE);
-          m_av_clock->OMXPause();
+          // m_av_clock->OMXPause();
           if(m_has_subtitle)
             m_player_subtitles.Pause();
         }
@@ -828,7 +828,7 @@ int main(int argc, char *argv[])
           if(m_has_subtitle)
             m_player_subtitles.Resume();
           SetSpeed(OMX_PLAYSPEED_NORMAL);
-          m_av_clock->OMXResume();
+          // m_av_clock->OMXResume();
         }
         break;
       case '-':
@@ -864,9 +864,9 @@ int main(int argc, char *argv[])
       if(m_has_subtitle)
         m_player_subtitles.Pause();
 
-      m_av_clock->OMXStop();
+      // m_av_clock->OMXStop();
 
-      pts = m_av_clock->GetPTS();
+      pts = m_av_clock->OMXMediaTime();
 
       seek_pos = (pts / DVD_TIME_BASE) + m_incr;
       seek_flags = m_incr < 0.0f ? AVSEEK_FLAG_BACKWARD : 0;
@@ -883,7 +883,7 @@ int main(int argc, char *argv[])
                                          m_hdmi_clock_sync, m_thread_player, m_display_aspect))
         goto do_exit;
 
-      m_av_clock->OMXStart(startpts);
+      // m_av_clock->OMXStart();
       
       if(m_has_subtitle)
         m_player_subtitles.Resume();

@@ -176,7 +176,12 @@ bool OMXPlayerVideo::Close()
     StopThread();
   }
 
+  m_av_clock->Lock();
+  m_av_clock->OMXStop(false);
   CloseDecoder();
+  m_av_clock->HasVideo(false);
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
 
   m_dllAvUtil.Unload();
   m_dllAvCodec.Unload();
@@ -243,7 +248,7 @@ void OMXPlayerVideo::Output(double pts)
   else
     m_iCurrentPts = pts - max(0.0, iSleepTime);
 
-  m_av_clock->SetPTS(m_iCurrentPts);
+  // m_av_clock->SetPTS(m_iCurrentPts);
 
   // timestamp when we think next picture should be displayed based on current duration
   m_FlipTimeStamp  = iCurrentClock;
@@ -367,7 +372,7 @@ bool OMXPlayerVideo::Decode(OMXPacket *pkt)
     else
       m_decoder->Decode(pkt->data, pkt->size, m_pts, m_pts);
 
-    m_av_clock->SetVideoClock(m_pts);
+    // m_av_clock->SetVideoClock(m_pts);
 
     Output(m_pts);
 
@@ -473,8 +478,13 @@ void OMXPlayerVideo::Flush()
   }
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_cached_size = 0;
+
+  m_av_clock->OMXStop(false);
   if(m_decoder)
     m_decoder->Reset();
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
+
   m_syncclock = true;
   UnLockDecoder();
   FlushSubtitles();
@@ -506,6 +516,9 @@ bool OMXPlayerVideo::AddPacket(OMXPacket *pkt)
 
 bool OMXPlayerVideo::OpenDecoder()
 {
+  if(!m_av_clock)
+    return false;
+
   if (m_hints.fpsrate && m_hints.fpsscale)
     m_fps = DVD_TIME_BASE / OMXReader::NormalizeFrameduration((double)DVD_TIME_BASE * m_hints.fpsscale / m_hints.fpsrate);
   else
@@ -514,27 +527,37 @@ bool OMXPlayerVideo::OpenDecoder()
   if( m_fps > 100 || m_fps < 5 )
   {
     printf("Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fps);
+    CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder : Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fps);
     m_fps = 25;
   }
 
   m_frametime = (double)DVD_TIME_BASE / m_fps;
 
+  m_av_clock->Lock();
+  m_av_clock->OMXStop(false);
+
   m_decoder = new COMXVideo();
-  if(!m_decoder->Open(m_hints, m_av_clock, m_display_aspect, m_Deinterlace, m_hdmi_clock_sync))
+  bool bVideoDecoderOpen = m_decoder->Open(m_hints, m_av_clock, m_display_aspect, m_Deinterlace, m_hdmi_clock_sync);
+
+  if(!bVideoDecoderOpen)
   {
     CloseDecoder();
-    return false;
   }
   else
   {
     printf("Video codec %s width %d height %d profile %d fps %f\n",
         m_decoder->GetDecoderName().c_str() , m_hints.width, m_hints.height, m_hints.profile, m_fps);
+
+    if(m_av_clock)
+      m_av_clock->SetRefreshRate(m_fps);
   }
 
-  if(m_av_clock)
-    m_av_clock->SetRefreshRate(m_fps);
+  m_av_clock->OMXStateExecute(false);
+  m_av_clock->HasVideo(bVideoDecoderOpen);
+  m_av_clock->OMXReset(false);
+  m_av_clock->UnLock();
 
-  return true;
+  return bVideoDecoderOpen;
 }
 
 bool OMXPlayerVideo::CloseDecoder()

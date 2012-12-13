@@ -69,15 +69,11 @@ enum {
 class OMXClock
 {
 protected:
-  double            m_video_clock;
-  double            m_audio_clock;
   bool              m_pause;
-  double            m_iCurrentPts;
   bool              m_has_video;
   bool              m_has_audio;
   int               m_play_speed;
   pthread_mutex_t   m_lock;
-  void              CheckSystemClock();
   double            SystemToAbsolute(int64_t system);
   double            SystemToPlaying(int64_t system);
   int64_t           m_systemUsed;
@@ -92,21 +88,26 @@ protected:
   bool              m_speedadjust;
   static bool       m_ismasterclock;
   double            m_fps;
+  int               m_omx_speed;
+  bool              m_video_start;
+  bool              m_audio_start;
+  bool              m_audio_buffer;
+  OMX_TIME_CONFIG_CLOCKSTATETYPE m_clock_state;
 private:
   COMXCoreComponent m_omx_clock;
-  DllAvFormat       m_dllAvFormat;
 public:
   OMXClock();
   ~OMXClock();
   void Lock();
   void UnLock();
-  int64_t GetFrequency();
   int64_t GetTime(bool interpolated = true);
   double  GetAbsoluteClock(bool interpolated = true);
+  double  GetFrequency() { return (double)m_systemFrequency ; }
   int64_t Wait(int64_t Target);
   double  WaitAbsoluteClock(double target);
   double GetClock(bool interpolated = true);
   double GetClock(double& absolute, bool interpolated = true);
+  void CheckSystemClock();
   void SetSpeed(int iSpeed);
   void SetMasterClock(bool ismasterclock) { m_ismasterclock = ismasterclock; }
   bool IsMasterClock()                    { return m_ismasterclock;          }
@@ -119,11 +120,15 @@ public:
   int UpdateFramerate(double fps, double* interval = NULL);
   bool   SetMaxSpeedAdjust(double speed);
 
+  void OMXSetClockPorts(OMX_TIME_CONFIG_CLOCKSTATETYPE *clock);
+  bool OMXSetReferenceClock(bool lock = true);
   bool OMXInitialize(bool has_video, bool has_audio);
-  void Deinitialize();
+  void OMXDeinitialize();
   bool OMXIsPaused() { return m_pause; };
+  void OMXSaveState(bool lock = true);
+  void OMXRestoreState(bool lock = true);
   bool OMXStop(bool lock = true);
-  bool OMXStart(double pts, bool lock = true);
+  bool OMXStart(bool lock = true);
   bool OMXReset(bool lock = true);
   double OMXWallTime(bool lock = true);
   double OMXMediaTime(bool lock = true);
@@ -131,29 +136,37 @@ public:
   bool OMXResume(bool lock = true);
   bool OMXUpdateClock(double pts, bool lock = true);
   bool OMXWaitStart(double pts, bool lock = true);
-  bool OMXSpeed(int speed, bool lock = true);
-  int  OMXPlaySpeed() { return m_play_speed; };
+  void OMXHandleBackward(bool lock = true);
+  bool OMXSetSpeed(int speed, bool lock = true);
+  int  OMXPlaySpeed() { return m_omx_speed; };
+  int  OMXGetPlaySpeed() { return m_omx_speed; };
   COMXCoreComponent *GetOMXClock();
   bool OMXStatePause(bool lock = true);
   bool OMXStateExecute(bool lock = true);
   void OMXStateIdle(bool lock = true);
-  double GetPTS();
-  void   SetPTS(double pts);
   static void AddTimespecs(struct timespec &time, long millisecs);
   bool HDMIClockSync(bool lock = true);
   static int64_t CurrentHostCounter(void);
   static int64_t CurrentHostFrequency(void);
-  void  SetVideoClock(double video_clock) { m_video_clock = video_clock; };
-  void  SetAudioClock(double audio_clock) { m_audio_clock = audio_clock; };
-  double  GetVideoClock() { return m_video_clock; };
-  double  GetAudioClock() { return m_audio_clock; };
   bool HasVideo() { return m_has_video; };
   bool HasAudio() { return m_has_audio; };
+  void HasVideo(bool has_video) { m_has_video = has_video; };
+  void HasAudio(bool has_audio) { m_has_audio = has_audio; };
+  bool VideoStart() { return m_video_start; };
+  bool AudioStart() { return m_audio_start; };
+  void VideoStart(bool video_start);
+  void AudioStart(bool audio_start);
   static void AddTimeSpecNano(struct timespec &time, uint64_t nanoseconds);
   static void OMXSleep(unsigned int dwMilliSeconds);
 
+  void OMXAudioBufferStart();
+  void OMXAudioBufferStop();
+  bool OMXAudioBuffer() { return m_audio_buffer; };
+
   int     GetRefreshRate(double* interval = NULL);
   void    SetRefreshRate(double fps) { m_fps = fps; };
+
+  static double NormalizeFrameduration(double frameduration);
 };
 
 #endif
