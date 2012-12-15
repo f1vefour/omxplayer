@@ -65,6 +65,7 @@ public:
   int GetInputBufferSize();
   void WaitCompletion();
 protected:
+ public:
   // Video format
   bool              m_drop_state;
   unsigned int      m_decoded_width;

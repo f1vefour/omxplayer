@@ -55,6 +55,7 @@ class OMXPlayerVideo : public CThread
 #endif
 {
 protected:
+ public:
   AVStream                  *m_pStream;
   int                       m_stream_id;
   std::deque<OMXPacket *>   m_subtitle_packets;
@@ -100,9 +101,9 @@ protected:
   void UnLockSubtitles();
 private:
 public:
-  OMXPlayerVideo();
+  OMXPlayerVideo(OMXClock *av_clock);
   ~OMXPlayerVideo();
-  bool Open(COMXStreamInfo &hints, OMXClock *av_clock, bool deinterlace, bool mpeg, bool hdmi_clock_sync, bool use_thread, float display_aspect);
+  bool Open(COMXStreamInfo &hints, bool deinterlace, bool mpeg, bool hdmi_clock_sync, bool use_thread, float display_aspect);
   bool Close();
   void Output(double pts);
   bool Decode(OMXPacket *pkt);

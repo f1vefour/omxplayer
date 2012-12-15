@@ -42,12 +42,14 @@
 
 #define MAX_DATA_SIZE    10 * 1024 * 1024
 
-OMXPlayerVideo::OMXPlayerVideo()
+OMXPlayerVideo::OMXPlayerVideo(OMXClock *av_clock)
 {
+  assert(av_clock);
+  
   m_open          = false;
   m_stream_id     = -1;
   m_pStream       = NULL;
-  m_av_clock      = NULL;
+  m_av_clock      = av_clock;
   m_decoder       = NULL;
   m_fps           = 25.0f;
   m_flush         = false;
@@ -114,9 +116,9 @@ void OMXPlayerVideo::UnLockSubtitles()
     pthread_mutex_unlock(&m_lock_subtitle);
 }
 
-bool OMXPlayerVideo::Open(COMXStreamInfo &hints, OMXClock *av_clock, bool deinterlace, bool mpeg, bool hdmi_clock_sync, bool use_thread, float display_aspect)
+bool OMXPlayerVideo::Open(COMXStreamInfo &hints, bool deinterlace, bool mpeg, bool hdmi_clock_sync, bool use_thread, float display_aspect)
 {
-  if (!m_dllAvUtil.Load() || !m_dllAvCodec.Load() || !m_dllAvFormat.Load() || !av_clock)
+  if (!m_dllAvUtil.Load() || !m_dllAvCodec.Load() || !m_dllAvFormat.Load())
     return false;
   
   if(ThreadHandle())
@@ -125,7 +127,6 @@ bool OMXPlayerVideo::Open(COMXStreamInfo &hints, OMXClock *av_clock, bool deinte
   m_dllAvFormat.av_register_all();
 
   m_hints       = hints;
-  m_av_clock    = av_clock;
   m_fps         = 25.0f;
   m_frametime   = 0;
   m_Deinterlace = deinterlace;
@@ -510,6 +511,8 @@ bool OMXPlayerVideo::AddPacket(OMXPacket *pkt)
     ret = true;
     pthread_cond_broadcast(&m_packet_cond);
   }
+  else
+    printf("Video full\n");
 
   return ret;
 }

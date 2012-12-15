@@ -57,5 +57,3 @@ private:
   DllBcmHost *m_DllBcmHost;
   bool       m_initialized;
 };
-
-extern CRBP g_RBP;

@@ -100,15 +100,16 @@ protected:
   int    m_skipdupcount; //counter for skip/duplicate synctype
   bool   m_prevskipped;
 
+public:
   void Lock();
   void UnLock();
   void LockDecoder();
   void UnLockDecoder();
 private:
 public:
-  OMXPlayerAudio();
+  OMXPlayerAudio(OMXClock *av_clock);
   ~OMXPlayerAudio();
-  bool Open(COMXStreamInfo &hints, OMXClock *av_clock, OMXReader *omx_reader,
+  bool Open(COMXStreamInfo &hints, OMXReader *omx_reader,
             std::string device, bool passthrough, bool hw_decode,
             bool boost_on_downmix, bool use_thread);
   bool Close();

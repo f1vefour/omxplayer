@@ -405,6 +405,8 @@ bool OMXClock::OMXStateExecute(bool lock /* = true */)
   if(lock)
     Lock();
 
+  CLog::Log(LOGDEBUG, "OMXClock::OMXStateExecute\n");
+
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
 
   if(m_omx_clock.GetState() != OMX_StateExecuting)
@@ -568,6 +570,8 @@ bool OMXClock::OMXReset(bool lock /* = true */)
 {
   if(m_omx_clock.GetComponent() == NULL)
     return false;
+
+  CLog::Log(LOGDEBUG, "OMXClock::OMXReset");
 
   if(lock)
     Lock();
@@ -865,7 +869,7 @@ bool OMXClock::OMXSetSpeed(int speed, bool lock /* = true */)
 
   m_omx_speed = speed;
 
-  CLog::Log(LOGDEBUG, "OMXClock::OMXSetSpeed fake %d\n\n", m_omx_speed / DVD_PLAYSPEED_NORMAL);
+  CLog::Log(LOGDEBUG, "OMXClock::OMXSetSpeed fake %d\n\n", m_omx_speed);
 
   // only adjust speed when not audio buffering
   if(!m_audio_buffer)
@@ -874,9 +878,9 @@ bool OMXClock::OMXSetSpeed(int speed, bool lock /* = true */)
     OMX_TIME_CONFIG_SCALETYPE scaleType;
     OMX_INIT_STRUCTURE(scaleType);
 
-    scaleType.xScale = ((m_omx_speed / DVD_PLAYSPEED_NORMAL) << 16);
+    scaleType.xScale = (m_omx_speed << 16);
 
-    CLog::Log(LOGDEBUG, "OMXClock::OMXSetSpeed real %d", m_omx_speed / DVD_PLAYSPEED_NORMAL);
+    CLog::Log(LOGDEBUG, "OMXClock::OMXSetSpeed real %d", m_omx_speed);
 
     omx_err = m_omx_clock.SetConfig(OMX_IndexConfigTimeScale, &scaleType);
     if(omx_err != OMX_ErrorNone)
