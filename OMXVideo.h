@@ -53,8 +53,6 @@ public:
   void Close(void);
   unsigned int GetFreeSpace();
   unsigned int GetSize();
-  OMXPacket *GetText();
-  int  DecodeText(uint8_t *pData, int iSize, double dts, double pts);
   int  Decode(uint8_t *pData, int iSize, double dts, double pts);
   void Reset(void);
   void SetDropState(bool bDrop);
@@ -73,7 +71,6 @@ protected:
 
   OMX_VIDEO_CODINGTYPE m_codingType;
 
-  COMXCoreComponent m_omx_text;
   COMXCoreComponent m_omx_decoder;
   COMXCoreComponent m_omx_render;
   COMXCoreComponent m_omx_sched;
@@ -81,7 +78,6 @@ protected:
   COMXCoreComponent *m_omx_clock;
   OMXClock           *m_av_clock;
 
-  COMXCoreTunel     m_omx_tunnel_text;
   COMXCoreTunel     m_omx_tunnel_decoder;
   COMXCoreTunel     m_omx_tunnel_clock;
   COMXCoreTunel     m_omx_tunnel_sched;
@@ -90,7 +86,6 @@ protected:
 
   bool              m_Pause;
   bool              m_setStartTime;
-  bool              m_setStartTimeText;
 
   uint8_t           *m_extradata;
   int               m_extrasize;
@@ -102,7 +97,6 @@ protected:
   bool              m_deinterlace;
   bool              m_hdmi_clock_sync;
   bool              m_first_frame;
-  bool              m_first_text;
 };
 
 #endif

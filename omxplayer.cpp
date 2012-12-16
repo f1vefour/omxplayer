@@ -769,14 +769,19 @@ int main(int argc, char *argv[])
         }
         break;
       case 'm':
-        m_player_video->Lock();
-        m_player_video->LockDecoder();
-          m_player_video->m_decoder->m_omx_decoder.FlushInput();
-          // m_player_video->m_decoder->m_omx_tunnel_decoder.Flush();
-        m_player_video->UnLockDecoder();
-        m_player_video->UnLock();
-        OMX_TIME_CONFIG_CLOCKSTATETYPE cl;
-        m_av_clock->OMXSetClockPorts(&cl);
+        // m_player_video->Lock();
+        // m_player_video->LockDecoder();
+             // m_player_video->m_decoder->m_omx_decoder.FlushInput();
+           m_player_video->m_decoder->m_omx_tunnel_decoder.Flush();
+           m_player_video->m_decoder->m_omx_tunnel_sched.Flush();
+        // m_player_video->UnLockDecoder();
+        // m_player_video->UnLock();
+
+        // OMX_TIME_CONFIG_CLOCKSTATETYPE cl;
+        // m_av_clock->Lock();
+        // m_av_clock->OMXSetClockPorts(&cl);
+        // m_av_clock->Unlock();
+
         // if(m_has_subtitle)
         // {
         //   if(m_player_subtitles->GetUseExternalSubtitles())
@@ -802,14 +807,14 @@ int main(int argc, char *argv[])
       m_player_audio->Lock();
       m_player_audio->LockDecoder();
         m_player_audio->CloseDecoder();
-      m_player_audio->UnLockDecoder();
-      m_player_audio->UnLock();
+      // m_player_audio->UnLockDecoder();
+      // m_player_audio->UnLock();
 
       // m_player_audio->Flush();
       // m_player_video->Flush();
 
-      m_player_audio->Lock();
-      m_player_audio->LockDecoder();
+      // m_player_audio->Lock();
+      // m_player_audio->LockDecoder();
         m_player_audio->OpenDecoder();
       m_player_audio->UnLockDecoder();
       m_player_audio->UnLock();
@@ -893,6 +898,11 @@ int main(int argc, char *argv[])
 
     lambdaQueue.execute();
     printf("Media time: %f\n", m_av_clock->OMXMediaTime());
+        // m_player_video->Lock();
+        // m_player_video->LockDecoder();
+          printf("Free space %i\n", m_player_video->m_decoder->GetFreeSpace());
+        // m_player_video->UnLockDecoder();
+        // m_player_video->UnLock();
 
     if(m_incr != 0 && !m_bMpeg)
     {

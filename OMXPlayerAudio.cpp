@@ -353,75 +353,71 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
     CodecChange();
   }
 
-  if(!((unsigned long)m_decoder->GetSpace() > pkt->size))
-    OMXClock::OMXSleep(10);
+  if(pkt->dts != DVD_NOPTS_VALUE)
+    m_iCurrentPts = pkt->dts;
 
-  if((unsigned long)m_decoder->GetSpace() > pkt->size)
+  // m_av_clock->SetPTS(m_iCurrentPts);
+
+  const uint8_t *data_dec = pkt->data;
+  int            data_len = pkt->size;
+
+  if(!m_passthrough && !m_hw_decode)
   {
-    if(pkt->dts != DVD_NOPTS_VALUE)
-      m_iCurrentPts = pkt->dts;
-
-    // m_av_clock->SetPTS(m_iCurrentPts);
-
-    const uint8_t *data_dec = pkt->data;
-    int            data_len = pkt->size;
-
-    if(!m_passthrough && !m_hw_decode)
+    while(data_len > 0)
     {
-      while(data_len > 0)
+      int len = m_pAudioCodec->Decode((BYTE *)data_dec, data_len);
+      if( (len < 0) || (len >  data_len) )
       {
-        int len = m_pAudioCodec->Decode((BYTE *)data_dec, data_len);
-        if( (len < 0) || (len >  data_len) )
-        {
-          m_pAudioCodec->Reset();
-          break;
-        }
-
-        data_dec+= len;
-        data_len -= len;
-
-        uint8_t *decoded;
-        int decoded_size = m_pAudioCodec->GetData(&decoded);
-
-        if(decoded_size <=0)
-          continue;
-
-        int ret = 0;
-
-        if(m_bMpeg)
-          ret = m_decoder->AddPackets(decoded, decoded_size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
-        else
-          ret = m_decoder->AddPackets(decoded, decoded_size, m_iCurrentPts, m_iCurrentPts);
-
-        if(ret != decoded_size)
-        {
-          printf("error ret %d decoded_size %d\n", ret, decoded_size);
-        }
-
-        int n = (m_hints.channels * m_hints.bitspersample * m_hints.samplerate)>>3;
-        if (n > 0 && m_iCurrentPts != DVD_NOPTS_VALUE)
-          m_iCurrentPts += ((double)decoded_size * DVD_TIME_BASE) / n;
-
-        HandleSyncError((((double)decoded_size * DVD_TIME_BASE) / n), m_iCurrentPts);
+        m_pAudioCodec->Reset();
+        break;
       }
-    }
-    else
-    {
+
+      data_dec += len;
+      data_len -= len;
+
+      uint8_t *decoded;
+      int decoded_size = m_pAudioCodec->GetData(&decoded);
+
+      if(decoded_size <=0)
+        continue;
+
+      if((unsigned) decoded_size > m_decoder->GetSpace())
+        return false;
+
+      int ret = 0;
+
       if(m_bMpeg)
-        m_decoder->AddPackets(pkt->data, pkt->size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
+        ret = m_decoder->AddPackets(decoded, decoded_size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
       else
-        m_decoder->AddPackets(pkt->data, pkt->size, m_iCurrentPts, m_iCurrentPts);
+        ret = m_decoder->AddPackets(decoded, decoded_size, m_iCurrentPts, m_iCurrentPts);
 
-      HandleSyncError(0, m_iCurrentPts);
+      if(ret != decoded_size)
+      {
+        printf("error ret %d decoded_size %d\n", ret, decoded_size);
+      }
+
+      int n = (m_hints.channels * m_hints.bitspersample * m_hints.samplerate)>>3;
+      if (n > 0 && m_iCurrentPts != DVD_NOPTS_VALUE)
+        m_iCurrentPts += ((double)decoded_size * DVD_TIME_BASE) / n;
+
+      HandleSyncError((((double)decoded_size * DVD_TIME_BASE) / n), m_iCurrentPts);
     }
-
-    // m_av_clock->SetAudioClock(m_iCurrentPts);
-    return true;
   }
   else
   {
-    return false;
+    if((unsigned) pkt->size > m_decoder->GetSpace())
+      return false;
+
+    if(m_bMpeg)
+      m_decoder->AddPackets(pkt->data, pkt->size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
+    else
+      m_decoder->AddPackets(pkt->data, pkt->size, m_iCurrentPts, m_iCurrentPts);
+
+    HandleSyncError(0, m_iCurrentPts);
   }
+
+  // m_av_clock->SetAudioClock(m_iCurrentPts);
+  return true;
 }
 
 void OMXPlayerAudio::Process()

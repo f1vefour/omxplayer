@@ -45,6 +45,8 @@
 
 #include <algorithm>
 
+#include <csignal>
+
 using namespace std;
 
 #define OMX_MAX_CHANNELS 9
@@ -833,6 +835,7 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len)
 //***********************************************************************************************
 unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dts, double pts)
 {
+
   if(!m_Initialized) {
     CLog::Log(LOGERROR,"COMXAudio::AddPackets - sanity failed. no valid play handle!");
     return len;
@@ -873,7 +876,7 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dt
 
     if(omx_buffer == NULL)
     {
-      CLog::Log(LOGERROR, "COMXAudio::Decode timeout\n");
+      CLog::Log(LOGERROR, "COMXAudio::Decode timeout");
       printf("COMXAudio::Decode timeout\n");
       return len;
     }
@@ -897,12 +900,16 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dt
 
     if(m_av_clock->AudioStart())
     {
+      m_av_clock->AudioStart(false);
       omx_buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
 
       m_last_pts = pts;
 
       CLog::Log(LOGDEBUG, "COMXAudio::Decode ADec : setStartTime %f\n", (float)val / DVD_TIME_BASE);
-      m_av_clock->AudioStart(false);
+      m_omx_decoder.FlushInput();
+      m_omx_tunnel_decoder.Flush();
+      if(!m_Passthrough)
+        m_omx_tunnel_mixer.Flush();
     }
     else
     {

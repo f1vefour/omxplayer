@@ -450,6 +450,7 @@ OMX_ERRORTYPE COMXCoreComponent::EmptyThisBuffer(OMX_BUFFERHEADERTYPE *omx_buffe
   {
     CLog::Log(LOGERROR, "COMXCoreComponent::EmptyThisBuffer component(%s) - failed with result(0x%x)\n", 
         m_componentName.c_str(), omx_err);
+    CLog::Log(LOGDEBUG, "Compononent in state %x", GetState());
   }
 
   return omx_err;
