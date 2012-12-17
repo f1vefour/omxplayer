@@ -41,6 +41,7 @@
 #include "settings/Settings.h"
 #endif
 
+#include "utils/ScopeExit.h"
 #include "omxplayerPublic.h"
 
 #define MAX_DATA_SIZE    3 * 1024 * 1024
@@ -381,8 +382,11 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
       if(decoded_size <=0)
         continue;
 
-      if((unsigned) decoded_size > m_decoder->GetSpace())
+      if((unsigned) decoded_size > m_decoder->GetSpace()) {
+        CLog::Log(LOGDEBUG, "decoder full");
+
         return false;
+      }
 
       int ret = 0;
 
@@ -514,7 +518,7 @@ bool OMXPlayerAudio::AddPacket(OMXPacket *pkt)
     pthread_cond_broadcast(&m_packet_cond);
   }
   else
-    printf("Audio full\n");
+    CLog::Log(LOGDEBUG, "Buffer full");
 
   return ret;
 }
@@ -681,6 +685,9 @@ bool OMXPlayerAudio::CloseDecoder()
 
 double OMXPlayerAudio::GetDelay()
 {
+  LockDecoder();
+  SCOPE_EXIT { UnLockDecoder(); };
+
   if(m_decoder)
     return m_decoder->GetDelay();
   else
@@ -732,19 +739,21 @@ void OMXPlayerAudio::DoAudioWork()
 
 void OMXPlayerAudio::SetCurrentVolume(long nVolume)
 {
-  if(m_decoder) m_decoder->SetCurrentVolume(nVolume);
+  LockDecoder();
+  if(m_decoder)
+    m_decoder->SetCurrentVolume(nVolume);
+  UnLockDecoder();
 }
 
 long OMXPlayerAudio::GetCurrentVolume()
 {
+  LockDecoder();
+  SCOPE_EXIT { UnLockDecoder(); };
+
   if(m_decoder)
-  {
     return m_decoder->GetCurrentVolume();
-  }
   else
-  {
     return 0;
-  }
 }
 
 void OMXPlayerAudio::SetSpeed(int speed)

@@ -835,7 +835,7 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len)
 //***********************************************************************************************
 unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dts, double pts)
 {
-
+  CLog::Log(LOGDEBUG, "COMXAudio::AddPackets");
   if(!m_Initialized) {
     CLog::Log(LOGERROR,"COMXAudio::AddPackets - sanity failed. no valid play handle!");
     return len;
@@ -898,9 +898,8 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dt
 
     uint64_t val  = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
 
-    if(m_av_clock->AudioStart())
+    if(m_av_clock->AudioStart(false))
     {
-      m_av_clock->AudioStart(false);
       omx_buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
 
       m_last_pts = pts;

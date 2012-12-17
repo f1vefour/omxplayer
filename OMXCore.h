@@ -101,8 +101,6 @@ public:
   std::string       GetName()        { return m_componentName; };
 
   OMX_ERRORTYPE DisableAllPorts();
-  void          RemoveEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
-  OMX_ERRORTYPE AddEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
   OMX_ERRORTYPE WaitForEvent(OMX_EVENTTYPE event, long timeout = 300);
   OMX_ERRORTYPE WaitForCommand(OMX_U32 command, OMX_U32 nData2, long timeout = 2000);
   OMX_ERRORTYPE SetStateForComponent(OMX_STATETYPE state);
@@ -166,6 +164,9 @@ public:
   void ResetEos();
 
 private:
+  void          RemoveEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
+  OMX_ERRORTYPE AddEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
+  
   OMX_HANDLETYPE m_handle;
   unsigned int   m_input_port;
   unsigned int   m_output_port;
@@ -179,7 +180,7 @@ private:
 
   // OMXCore input buffers (demuxer packets)
   pthread_mutex_t   m_omx_input_mutex;
-  std::queue<OMX_BUFFERHEADERTYPE*> m_omx_input_avaliable;
+  std::queue<OMX_BUFFERHEADERTYPE*> m_omx_input_available;
   std::vector<OMX_BUFFERHEADERTYPE*> m_omx_input_buffers;
   unsigned int  m_input_alignment;
   unsigned int  m_input_buffer_size;

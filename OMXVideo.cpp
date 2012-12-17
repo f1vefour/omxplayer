@@ -660,9 +660,8 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double dts, double pts)
 
       uint64_t val  = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
 
-      if(m_av_clock->VideoStart())
+      if(m_av_clock->VideoStart(false))
       {
-        m_av_clock->VideoStart(false);
         omx_buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
         CLog::Log(LOGDEBUG, "OMXVideo::Decode VDec : setStartTime %f\n", (float)val / DVD_TIME_BASE);
         m_omx_decoder.FlushInput();

@@ -26,6 +26,8 @@
 
 #include "OMXCore.h"
 
+#include <atomic>
+
 #define AV_SYNC_THRESHOLD 0.01
 #define AV_NOSYNC_THRESHOLD 10.0
 #define SAMPLE_CORRECTION_PERCENT_MAX 10
@@ -89,8 +91,8 @@ protected:
   static bool       m_ismasterclock;
   double            m_fps;
   int               m_omx_speed;
-  bool              m_video_start;
-  bool              m_audio_start;
+  std::atomic<bool> m_video_start;
+  std::atomic<bool> m_audio_start;
   bool              m_audio_buffer;
   OMX_TIME_CONFIG_CLOCKSTATETYPE m_clock_state;
 private:
@@ -152,10 +154,8 @@ public:
   bool HasAudio() { return m_has_audio; };
   void HasVideo(bool has_video) { m_has_video = has_video; };
   void HasAudio(bool has_audio) { m_has_audio = has_audio; };
-  bool VideoStart() { return m_video_start; };
-  bool AudioStart() { return m_audio_start; };
-  void VideoStart(bool video_start);
-  void AudioStart(bool audio_start);
+  bool VideoStart(bool video_start);
+  bool AudioStart(bool audio_start);
   static void AddTimeSpecNano(struct timespec &time, uint64_t nanoseconds);
   static void OMXSleep(unsigned int dwMilliSeconds);
 

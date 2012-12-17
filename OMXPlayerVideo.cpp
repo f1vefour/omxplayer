@@ -40,6 +40,8 @@
 #include "utils/BitstreamStats.h"
 #endif
 
+#include "utils/ScopeExit.h"
+
 #define MAX_DATA_SIZE    10 * 1024 * 1024
 
 OMXPlayerVideo::OMXPlayerVideo(OMXClock *av_clock)
@@ -386,8 +388,6 @@ bool OMXPlayerVideo::AddPacket(OMXPacket *pkt)
     ret = true;
     pthread_cond_broadcast(&m_packet_cond);
   }
-  else
-    printf("Video full\n");
 
   return ret;
 }
@@ -456,6 +456,9 @@ bool OMXPlayerVideo::CloseDecoder()
 
 int  OMXPlayerVideo::GetDecoderBufferSize()
 {
+  LockDecoder();
+  SCOPE_EXIT { UnLockDecoder(); };
+
   if(m_decoder)
     return m_decoder->GetInputBufferSize();
   else
@@ -464,6 +467,9 @@ int  OMXPlayerVideo::GetDecoderBufferSize()
 
 int  OMXPlayerVideo::GetDecoderFreeSpace()
 {
+  LockDecoder();
+  SCOPE_EXIT { UnLockDecoder(); };
+
   if(m_decoder)
     return m_decoder->GetFreeSpace();
   else

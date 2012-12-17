@@ -769,55 +769,45 @@ int main(int argc, char *argv[])
         }
         break;
       case 'm':
-        // m_player_video->Lock();
-        // m_player_video->LockDecoder();
-             // m_player_video->m_decoder->m_omx_decoder.FlushInput();
-           m_player_video->m_decoder->m_omx_tunnel_decoder.Flush();
-           m_player_video->m_decoder->m_omx_tunnel_sched.Flush();
-        // m_player_video->UnLockDecoder();
-        // m_player_video->UnLock();
+        if(m_has_subtitle)
+        {
+          if(m_player_subtitles->GetUseExternalSubtitles())
+          {
+            if(m_omx_reader.SubtitleStreamCount())
+            {
+              assert(m_player_subtitles->GetActiveStream() == 0);
+              m_player_subtitles->SetUseExternalSubtitles(false);
+            }
+          }
+          else
+          {
+            auto new_index = m_player_subtitles->GetActiveStream()+1;
+            if(new_index < (size_t) m_omx_reader.SubtitleStreamCount())
+              m_player_subtitles->SetActiveStream(new_index);
+          }
 
-        // OMX_TIME_CONFIG_CLOCKSTATETYPE cl;
-        // m_av_clock->Lock();
-        // m_av_clock->OMXSetClockPorts(&cl);
-        // m_av_clock->Unlock();
-
-        // if(m_has_subtitle)
-        // {
-        //   if(m_player_subtitles->GetUseExternalSubtitles())
-        //   {
-        //     if(m_omx_reader.SubtitleStreamCount())
-        //     {
-        //       assert(m_player_subtitles->GetActiveStream() == 0);
-        //       m_player_subtitles->SetUseExternalSubtitles(false);
-        //     }
-        //   }
-        //   else
-        //   {
-        //     auto new_index = m_player_subtitles->GetActiveStream()+1;
-        //     if(new_index < (size_t) m_omx_reader.SubtitleStreamCount())
-        //       m_player_subtitles->SetActiveStream(new_index);
-        //   }
-
-        //   m_player_subtitles->SetVisible(true);
-        //   PrintSubtitleInfo();
-        // }
+          m_player_subtitles->SetVisible(true);
+          PrintSubtitleInfo();
+        }
         break;
       case 's':
-      m_player_audio->Lock();
-      m_player_audio->LockDecoder();
-        m_player_audio->CloseDecoder();
-      // m_player_audio->UnLockDecoder();
-      // m_player_audio->UnLock();
+        m_player_video->LockDecoder();
+        printf("Locked\n");
+        CLog::Log(LOGDEBUG, "Closing video decoder");
+        m_player_video->CloseDecoder();
+        printf("Closed\n");
 
-      // m_player_audio->Flush();
-      // m_player_video->Flush();
+        {
+          auto result = m_player_video->OpenDecoder();
+          printf("Opened: %i\n", (int) result);
 
-      // m_player_audio->Lock();
-      // m_player_audio->LockDecoder();
-        m_player_audio->OpenDecoder();
-      m_player_audio->UnLockDecoder();
-      m_player_audio->UnLock();
+          assert(result);
+        }
+        CLog::Log(LOGDEBUG, "Video decoder reopened");
+        m_player_video->UnLockDecoder();
+
+        printf("Unlocked\n");
+
         // if(m_has_subtitle)
         // {
         //   m_player_subtitles->SetVisible(!m_player_subtitles->GetVisible());
@@ -897,12 +887,6 @@ int main(int argc, char *argv[])
     }
 
     lambdaQueue.execute();
-    printf("Media time: %f\n", m_av_clock->OMXMediaTime());
-        // m_player_video->Lock();
-        // m_player_video->LockDecoder();
-          printf("Free space %i\n", m_player_video->m_decoder->GetFreeSpace());
-        // m_player_video->UnLockDecoder();
-        // m_player_video->UnLock();
 
     if(m_incr != 0 && !m_bMpeg)
     {

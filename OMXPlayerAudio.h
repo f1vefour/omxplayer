@@ -132,7 +132,6 @@ public:
     unsigned int cached_size = m_cached_size;
     UnLock();
     return cached_size;
-
   };
   void  RegisterAudioCallback(IAudioCallback* pCallback);
   void  UnRegisterAudioCallback();

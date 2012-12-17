@@ -32,11 +32,11 @@ int64_t OMXClock::m_systemFrequency;
 bool    OMXClock::m_ismasterclock;
 
 OMXClock::OMXClock()
+: m_video_start(false),
+  m_audio_start(false)
 {
   m_has_video   = false;
   m_has_audio   = false;
-  m_video_start = false;
-  m_audio_start = false;
   m_pause       = false;
 
   m_systemOffset = 0;
@@ -276,22 +276,22 @@ void OMXClock::OMXSetClockPorts(OMX_TIME_CONFIG_CLOCKSTATETYPE *clock)
 
   if(m_has_audio)
   {
-    m_audio_start = true;
+    m_audio_start.store(true, std::memory_order_relaxed);
     clock->nWaitMask |= OMX_CLOCKPORT0;
   }
   else
   {
-    m_audio_start = false;
+    m_audio_start.store(false, std::memory_order_relaxed);
   }
 
   if(m_has_video)
   {
-    m_video_start = true;
+    m_video_start.store(true, std::memory_order_relaxed);
     clock->nWaitMask |= OMX_CLOCKPORT1;
   }
   else
   {
-    m_video_start = false;
+    m_video_start.store(false, std::memory_order_relaxed);
   }
 }
 
@@ -332,8 +332,8 @@ bool OMXClock::OMXInitialize(bool has_video, bool has_audio)
   m_has_video = has_video;
   m_has_audio = has_audio;
 
-  m_video_start = false;
-  m_audio_start = false;
+  m_video_start.store(false, std::memory_order_relaxed);
+  m_audio_start.store(false, std::memory_order_relaxed);
   m_pause       = false;
   m_audio_buffer = false;
 
@@ -552,18 +552,14 @@ bool OMXClock::OMXStart(bool lock /* = true */)
   return true;
 }
 
-void OMXClock::VideoStart(bool video_start)
+bool OMXClock::VideoStart(bool video_start)
 { 
-  Lock();
-  m_video_start = video_start; 
-  UnLock();
+  return m_video_start.exchange(video_start, std::memory_order_relaxed);
 };
 
-void OMXClock::AudioStart(bool audio_start) 
-{ 
-  Lock();
-  m_audio_start = audio_start; 
-  UnLock();
+bool OMXClock::AudioStart(bool audio_start) 
+{
+  return m_audio_start.exchange(audio_start, std::memory_order_relaxed);
 };
 
 bool OMXClock::OMXReset(bool lock /* = true */)
@@ -616,7 +612,7 @@ bool OMXClock::OMXReset(bool lock /* = true */)
   }
 
   CLog::Log(LOGDEBUG, "OMXClock::OMXReset audio / video : %d / %d start audio / video : %d / %d wait mask %d\n", 
-      m_has_audio, m_has_video, m_audio_start, m_video_start, clock.nWaitMask);
+      m_has_audio, m_has_video, m_audio_start.load(std::memory_order_relaxed), m_video_start.load(std::memory_order_relaxed), clock.nWaitMask);
 
   if(lock)
     UnLock();

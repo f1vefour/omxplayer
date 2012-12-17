@@ -445,12 +445,14 @@ OMX_ERRORTYPE COMXCoreComponent::EmptyThisBuffer(OMX_BUFFERHEADERTYPE *omx_buffe
   if(!m_handle || !omx_buffer)
     return OMX_ErrorUndefined;
 
+  Lock();
   omx_err = OMX_EmptyThisBuffer(m_handle, omx_buffer);
+  UnLock();
+
   if (omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "COMXCoreComponent::EmptyThisBuffer component(%s) - failed with result(0x%x)\n", 
         m_componentName.c_str(), omx_err);
-    CLog::Log(LOGDEBUG, "Compononent in state %x", GetState());
   }
 
   return omx_err;
@@ -463,7 +465,10 @@ OMX_ERRORTYPE COMXCoreComponent::FillThisBuffer(OMX_BUFFERHEADERTYPE *omx_buffer
   if(!m_handle || !omx_buffer)
     return OMX_ErrorUndefined;
 
+  Lock();
   omx_err = OMX_FillThisBuffer(m_handle, omx_buffer);
+  UnLock();
+
   if (omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "COMXCoreComponent::FillThisBuffer component(%s) - failed with result(0x%x)\n", 
@@ -504,7 +509,7 @@ unsigned int COMXCoreComponent::GetOutputBufferSize()
 
 unsigned int COMXCoreComponent::GetInputBufferSpace()
 {
-  int free = m_omx_input_avaliable.size() * m_input_buffer_size;
+  int free = m_omx_input_available.size() * m_input_buffer_size;
   return free;
 }
 
@@ -576,10 +581,10 @@ OMX_BUFFERHEADERTYPE *COMXCoreComponent::GetInputBuffer(long timeout)
   add_timespecs(endtime, timeout);
   while (1 && !m_flush_input)
   {
-    if(!m_omx_input_avaliable.empty())
+    if(!m_omx_input_available.empty())
     {
-      omx_input_buffer = m_omx_input_avaliable.front();
-      m_omx_input_avaliable.pop();
+      omx_input_buffer = m_omx_input_available.front();
+      m_omx_input_available.pop();
       break;
     }
 
@@ -678,7 +683,7 @@ OMX_ERRORTYPE COMXCoreComponent::AllocInputBuffers(bool use_buffers /* = false *
     buffer->nOffset         = 0;
     buffer->pAppPrivate     = (void*)i;  
     m_omx_input_buffers.push_back(buffer);
-    m_omx_input_avaliable.push(buffer);
+    m_omx_input_available.push(buffer);
   }
 
   omx_err = WaitForCommand(OMX_CommandPortEnable, m_input_port);
@@ -797,12 +802,12 @@ OMX_ERRORTYPE COMXCoreComponent::FreeInputBuffers()
   }
 
   WaitForCommand(OMX_CommandPortDisable, m_input_port);
-  assert(m_omx_input_buffers.size() == m_omx_input_avaliable.size());
+  assert(m_omx_input_buffers.size() == m_omx_input_available.size());
 
   m_omx_input_buffers.clear();
 
-  while (!m_omx_input_avaliable.empty())
-    m_omx_input_avaliable.pop();
+  while (!m_omx_input_available.empty())
+    m_omx_input_available.pop();
 
   m_input_alignment     = 0;
   m_input_buffer_size   = 0;
@@ -1539,7 +1544,7 @@ OMX_ERRORTYPE COMXCoreComponent::DecoderEmptyBufferDone(OMX_HANDLETYPE hComponen
   COMXCoreComponent *ctx = static_cast<COMXCoreComponent*>(pAppData);
 
   pthread_mutex_lock(&ctx->m_omx_input_mutex);
-  ctx->m_omx_input_avaliable.push(pBuffer);
+  ctx->m_omx_input_available.push(pBuffer);
 
   // this allows (all) blocked tasks to be awoken
   pthread_cond_broadcast(&ctx->m_input_buffer_cond);
