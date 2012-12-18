@@ -305,12 +305,14 @@ bool OMXClock::OMXSetReferenceClock(bool lock /* = true */)
   OMX_TIME_CONFIG_ACTIVEREFCLOCKTYPE refClock;
   OMX_INIT_STRUCTURE(refClock);
 
-  if(m_has_audio)
-    refClock.eClock = OMX_TIME_RefClockAudio;
-  else
-    refClock.eClock = OMX_TIME_RefClockVideo;
+  // if(m_has_audio)
+  //   refClock.eClock = OMX_TIME_RefClockAudio;
+  // else
+  //   refClock.eClock = OMX_TIME_RefClockVideo;
 
-  CLog::Log(LOGNOTICE, "OMXClock using %s as reference\n", refClock.eClock == OMX_TIME_RefClockVideo ? "video" : "audio");
+  refClock.eClock = OMX_TIME_RefClockVideo;
+
+  // CLog::Log(LOGNOTICE, "OMXClock using %s as reference\n", refClock.eClock == OMX_TIME_RefClockVideo ? "video" : "audio");
 
   omx_err = m_omx_clock.SetConfig(OMX_IndexConfigTimeActiveRefClock, &refClock);
   if(omx_err != OMX_ErrorNone)
@@ -343,11 +345,10 @@ bool OMXClock::OMXInitialize(bool has_video, bool has_audio)
 
   m_omx_clock.DisableAllPorts();
 
-  /*
   if(!OMXSetReferenceClock(false))
     return false;
 
-  OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
+/*  OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
   OMX_INIT_STRUCTURE(clock);
 
   clock.eState = OMX_TIME_ClockStateWaitingForStartTime;
@@ -575,12 +576,6 @@ bool OMXClock::OMXReset(bool lock /* = true */)
   m_audio_buffer = false;
 
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
-
-  if(!OMXSetReferenceClock(false))
-  {
-    UnLock();
-    return false;
-  }
 
   OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
   OMX_INIT_STRUCTURE(clock);

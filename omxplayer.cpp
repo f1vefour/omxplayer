@@ -59,11 +59,13 @@ extern "C" {
 #include "Srt.h"
 #include "Cec.h"
 #include "utils/LambdaQueue.h"
+#include "omxplayerPublic.h"
 
 #include <string>
 #include <utility>
 
 LambdaQueue lambdaQueue;
+bool start_ = false;
 
 std::unique_ptr<CRBP> g_RBP;
 std::unique_ptr<COMXCore> g_OMX;
@@ -195,34 +197,71 @@ void SetSpeed(int iSpeed)
   m_av_clock->OMXSetSpeed(iSpeed);
 }
 
-void FlushStreams(double pts)
+// void FlushStreams(double pts)
+// {
+// //  if(m_av_clock)
+// //    m_av_clock->OMXPause();
+
+//   if(m_has_video)
+//     m_player_video->Flush();
+
+//   if(m_has_audio)
+//     m_player_audio->Flush();
+
+//   if(m_has_subtitle)
+//     m_player_subtitles->Flush(pts);
+
+//   if(m_omx_pkt)
+//   {
+//     m_omx_reader.FreePacket(m_omx_pkt);
+//     m_omx_pkt = NULL;
+//   }
+
+//   // if(pts != DVD_NOPTS_VALUE)
+//   //   m_av_clock->OMXUpdateClock(pts);
+
+// //  if(m_av_clock)
+// //  {
+// //    m_av_clock->OMXReset();
+// //    m_av_clock->OMXResume();
+// //  }
+// }
+
+void Seek(double offset)
 {
-//  if(m_av_clock)
-//    m_av_clock->OMXPause();
-
-  if(m_has_video)
-    m_player_video->Flush();
-
-  if(m_has_audio)
-    m_player_audio->Flush();
-
   if(m_has_subtitle)
-    m_player_subtitles->Flush(pts);
+    m_player_subtitles->Pause();
 
-  if(m_omx_pkt)
+  double pts = m_av_clock->OMXMediaTime();
+
+  double seek_pos = (pts / DVD_TIME_BASE) + offset;
+  int seek_flags = offset < 0 ? AVSEEK_FLAG_BACKWARD : 0;
+
+  seek_pos *= 1000;
+  
+  double startpts{};
+
+  if(m_omx_reader.SeekTime(seek_pos, seek_flags, &startpts))
   {
-    m_omx_reader.FreePacket(m_omx_pkt);
-    m_omx_pkt = NULL;
+    m_av_clock->OMXStop();
+    if(m_has_audio)
+    {
+      auto result = m_player_audio->Open(m_hints_audio, &m_omx_reader, deviceString, 
+        m_passthrough, m_use_hw_audio, m_boost_on_downmix, m_thread_player);
+      assert(result);
+    }
+    if(m_has_video)
+    {
+      auto result = m_player_video->Open(m_hints_video, m_Deinterlace,  m_bMpeg, 
+        m_hdmi_clock_sync, m_thread_player, m_display_aspect);
+      assert(result);
+    }
+    m_av_clock->OMXStateExecute();
+    m_av_clock->OMXReset();
   }
-
-  // if(pts != DVD_NOPTS_VALUE)
-  //   m_av_clock->OMXUpdateClock(pts);
-
-//  if(m_av_clock)
-//  {
-//    m_av_clock->OMXReset();
-//    m_av_clock->OMXResume();
-//  }
+  
+  if(m_has_subtitle)
+    m_player_subtitles->Resume();
 }
 
 void SetVideoMode(int width, int height, int fpsrate, int fpsscale, bool is3d)
@@ -390,7 +429,6 @@ int main(int argc, char *argv[])
   bool                  m_dump_format         = false;
   bool                  m_3d                  = false;
   bool                  m_refresh             = false;
-  double                startpts              = 0;
   TV_GET_STATE_RESP_T   tv_state;
 
   const int font_opt      = 0x100;
@@ -661,8 +699,8 @@ int main(int argc, char *argv[])
     goto do_exit;
 
   // m_av_clock->SetSpeed(DVD_PLAYSPEED_NORMAL);
-  // m_av_clock->OMXStateExecute();
-  // m_av_clock->OMXStart();
+  m_av_clock->OMXStateExecute();
+  m_av_clock->OMXReset();
 
   struct timespec starttime, endtime;
 
@@ -718,31 +756,37 @@ int main(int argc, char *argv[])
         {
           int new_index = m_omx_reader.GetAudioIndex() - 1;
           if (new_index >= 0)
+          {
             m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, new_index);
+            Seek(0);
+          }
         }
         break;
       case 'k':
         if(m_has_audio)
+        {
           m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, m_omx_reader.GetAudioIndex() + 1);
+          Seek(0);
+        }
         break;
       case 'i':
-        if(m_omx_reader.GetChapterCount() > 0)
-        {
-          m_omx_reader.SeekChapter(m_omx_reader.GetChapter() - 1, &startpts);
-          FlushStreams(startpts);
-        }
-        else
+        // if(m_omx_reader.GetChapterCount() > 0)
+        // {
+        //   m_omx_reader.SeekChapter(m_omx_reader.GetChapter() - 1, &startpts);
+        //   FlushStreams(startpts);
+        // }
+        // else
         {
           m_incr = -600.0;
         }
         break;
       case 'o':
-        if(m_omx_reader.GetChapterCount() > 0)
-        {
-          m_omx_reader.SeekChapter(m_omx_reader.GetChapter() + 1, &startpts);
-          FlushStreams(startpts);
-        }
-        else
+        // if(m_omx_reader.GetChapterCount() > 0)
+        // {
+        //   m_omx_reader.SeekChapter(m_omx_reader.GetChapter() + 1, &startpts);
+        //   FlushStreams(startpts);
+        // }
+        // else
         {
           m_incr = 600.0;
         }
@@ -791,22 +835,7 @@ int main(int argc, char *argv[])
         }
         break;
       case 's':
-        m_player_video->LockDecoder();
-        printf("Locked\n");
-        CLog::Log(LOGDEBUG, "Closing video decoder");
-        m_player_video->CloseDecoder();
-        printf("Closed\n");
-
-        {
-          auto result = m_player_video->OpenDecoder();
-          printf("Opened: %i\n", (int) result);
-
-          assert(result);
-        }
-        CLog::Log(LOGDEBUG, "Video decoder reopened");
-        m_player_video->UnLockDecoder();
-
-        printf("Unlocked\n");
+        start_ = true;
 
         // if(m_has_subtitle)
         // {
@@ -886,38 +915,14 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    printf("%f\n", m_av_clock->OMXMediaTime());
+
     lambdaQueue.execute();
 
     if(m_incr != 0 && !m_bMpeg)
     {
-      int    seek_flags   = 0;
-      double seek_pos     = 0;
-      double pts          = 0;
-
-      if(m_has_subtitle)
-        m_player_subtitles->Pause();
-
-      pts = m_av_clock->OMXMediaTime();
-
-      seek_pos = (pts / DVD_TIME_BASE) + m_incr;
-      seek_flags = m_incr < 0.0f ? AVSEEK_FLAG_BACKWARD : 0;
-
-      seek_pos *= 1000.0f;
-
+      Seek(m_incr);
       m_incr = 0;
-      
-
-      if(m_omx_reader.SeekTime(seek_pos, seek_flags, &startpts))
-        FlushStreams(startpts);
-
-      if(m_has_video && !m_player_video->Open(m_hints_video, m_Deinterlace,  m_bMpeg, 
-                                         m_hdmi_clock_sync, m_thread_player, m_display_aspect))
-        goto do_exit;
-
-      // m_av_clock->OMXStart();
-      
-      if(m_has_subtitle)
-        m_player_subtitles->Resume();
     }
 
     /* player got in an error state */

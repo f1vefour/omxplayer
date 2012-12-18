@@ -23,6 +23,7 @@
 
 #include <string>
 #include <queue>
+#include <functional>
 
 // TODO: should this be in configure
 #ifndef OMX_SKIP64BIT
@@ -99,6 +100,8 @@ public:
   unsigned int      GetInputPort()   { return m_input_port;    };
   unsigned int      GetOutputPort()  { return m_output_port;   };
   std::string       GetName()        { return m_componentName; };
+
+  std::function<void()> portSettingsChangedHandler;
 
   OMX_ERRORTYPE DisableAllPorts();
   OMX_ERRORTYPE WaitForEvent(OMX_EVENTTYPE event, long timeout = 300);

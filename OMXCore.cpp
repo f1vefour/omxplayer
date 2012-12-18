@@ -1677,6 +1677,8 @@ OMX_ERRORTYPE COMXCoreComponent::DecoderEventHandler(
       #if defined(OMX_DEBUG_EVENTHANDLER)
       CLog::Log(LOGDEBUG, "%s::%s %s - OMX_EventPortSettingsChanged(output)\n", CLASSNAME, __func__, ctx->GetName().c_str());
       #endif
+      if(ctx->portSettingsChangedHandler)
+        ctx->portSettingsChangedHandler();
     break;
     #if defined(OMX_DEBUG_EVENTHANDLER)
     case OMX_EventMark:

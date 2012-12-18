@@ -43,6 +43,8 @@
 #include "OMXStreamInfo.h"
 #include "BitstreamConverter.h"
 
+#include <mutex>
+
 #define AUDIO_BUFFER_SECONDS 2
 #define VIS_PACKET_SIZE 3840
 
@@ -98,6 +100,7 @@ public:
   unsigned int SyncAC3(BYTE* pData, unsigned int iSize);
 
 private:
+  std::recursive_mutex m_mutex;
   IAudioCallback* m_pCallback;
   bool          m_Initialized;
   bool          m_Pause;

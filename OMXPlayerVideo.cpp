@@ -129,7 +129,7 @@ bool OMXPlayerVideo::Open(COMXStreamInfo &hints, bool deinterlace, bool mpeg, bo
   m_syncclock   = true;
   m_speed       = DVD_PLAYSPEED_NORMAL;
 
-  m_FlipTimeStamp = m_av_clock->GetAbsoluteClock();
+  // m_FlipTimeStamp = m_av_clock->GetAbsoluteClock();
 
   if(!OpenDecoder())
   {
@@ -150,7 +150,7 @@ bool OMXPlayerVideo::Close()
   m_bAbort  = true;
   m_flush   = true;
 
-  Flush();
+  // Flush();
 
   if(ThreadHandle())
   {
@@ -167,6 +167,13 @@ bool OMXPlayerVideo::Close()
   m_dllAvCodec.Unload();
   m_dllAvFormat.Unload();
 
+  while (!m_packets.empty())
+  {
+    OMXPacket *pkt = m_packets.front(); 
+    m_packets.pop_front();
+    OMXReader::FreePacket(pkt);
+  }
+
   m_open          = false;
   m_stream_id     = -1;
   m_iCurrentPts   = DVD_NOPTS_VALUE;
@@ -180,80 +187,80 @@ bool OMXPlayerVideo::Close()
 
 void OMXPlayerVideo::Output(double pts)
 {
-  if(m_syncclock)
-  {
-    double delay = m_FlipTimeStamp - m_av_clock->GetAbsoluteClock();
-    if( delay > m_frametime ) delay = m_frametime;
-    else if( delay < 0 )    delay = 0;
+  // if(m_syncclock)
+  // {
+  //   double delay = m_FlipTimeStamp - m_av_clock->GetAbsoluteClock();
+  //   if( delay > m_frametime ) delay = m_frametime;
+  //   else if( delay < 0 )    delay = 0;
 
-    //printf("OMXPlayerVideo - GENERAL_RESYNC(%f, 1) delay %f\n", pts, m_FlipTimeStamp);
-    m_av_clock->Discontinuity(pts - delay);
-    m_syncclock = false;
-  }
+  //   //printf("OMXPlayerVideo - GENERAL_RESYNC(%f, 1) delay %f\n", pts, m_FlipTimeStamp);
+  //   m_av_clock->Discontinuity(pts - delay);
+  //   m_syncclock = false;
+  // }
 
-  double iSleepTime, iClockSleep, iFrameSleep, iPlayingClock, iCurrentClock, iFrameDuration;
-  iPlayingClock = m_av_clock->GetClock(iCurrentClock, false); // snapshot current clock
-  iClockSleep = pts - iPlayingClock; //sleep calculated by pts to clock comparison
-  iFrameSleep = m_FlipTimeStamp - iCurrentClock; // sleep calculated by duration of frame
-  iFrameDuration = m_frametime;
+  // double iSleepTime, iClockSleep, iFrameSleep, iPlayingClock, iCurrentClock, iFrameDuration;
+  // iPlayingClock = m_av_clock->GetClock(iCurrentClock, false); // snapshot current clock
+  // iClockSleep = pts - iPlayingClock; //sleep calculated by pts to clock comparison
+  // iFrameSleep = m_FlipTimeStamp - iCurrentClock; // sleep calculated by duration of frame
+  // iFrameDuration = m_frametime;
 
-  // correct sleep times based on speed
-  if(m_speed)
-  {
-    iClockSleep = iClockSleep * DVD_PLAYSPEED_NORMAL / m_speed;
-    iFrameSleep = iFrameSleep * DVD_PLAYSPEED_NORMAL / abs(m_speed);
-    iFrameDuration = iFrameDuration * DVD_PLAYSPEED_NORMAL / abs(m_speed);
-  }
-  else
-  {
-    iClockSleep = 0;
-    iFrameSleep = 0;
-  }
-  // dropping to a very low framerate is not correct (it should not happen at all)
-  iClockSleep = min(iClockSleep, DVD_MSEC_TO_TIME(500));
-  iFrameSleep = min(iFrameSleep, DVD_MSEC_TO_TIME(500));
+  // // correct sleep times based on speed
+  // if(m_speed)
+  // {
+  //   iClockSleep = iClockSleep * DVD_PLAYSPEED_NORMAL / m_speed;
+  //   iFrameSleep = iFrameSleep * DVD_PLAYSPEED_NORMAL / abs(m_speed);
+  //   iFrameDuration = iFrameDuration * DVD_PLAYSPEED_NORMAL / abs(m_speed);
+  // }
+  // else
+  // {
+  //   iClockSleep = 0;
+  //   iFrameSleep = 0;
+  // }
+  // // dropping to a very low framerate is not correct (it should not happen at all)
+  // iClockSleep = min(iClockSleep, DVD_MSEC_TO_TIME(500));
+  // iFrameSleep = min(iFrameSleep, DVD_MSEC_TO_TIME(500));
 
-  bool m_stalled = false;
-  int m_autosync = 1;
-  if( m_stalled )
-    iSleepTime = iFrameSleep;
-  else
-    iSleepTime = iFrameSleep + (iClockSleep - iFrameSleep) / m_autosync;
+  // bool m_stalled = false;
+  // int m_autosync = 1;
+  // if( m_stalled )
+  //   iSleepTime = iFrameSleep;
+  // else
+  //   iSleepTime = iFrameSleep + (iClockSleep - iFrameSleep) / m_autosync;
 
-  // present the current pts of this frame to user, and include the actual
-  // presentation delay, to allow him to adjust for it
-  if( m_stalled )
-    m_iCurrentPts = DVD_NOPTS_VALUE;
-  else
-    m_iCurrentPts = pts - max(0.0, iSleepTime);
+  // // present the current pts of this frame to user, and include the actual
+  // // presentation delay, to allow him to adjust for it
+  // if( m_stalled )
+  //   m_iCurrentPts = DVD_NOPTS_VALUE;
+  // else
+  //   m_iCurrentPts = pts - max(0.0, iSleepTime);
 
-  // m_av_clock->SetPTS(m_iCurrentPts);
+  // // m_av_clock->SetPTS(m_iCurrentPts);
 
-  // timestamp when we think next picture should be displayed based on current duration
-  m_FlipTimeStamp  = iCurrentClock;
-  m_FlipTimeStamp += max(0.0, iSleepTime);
-  m_FlipTimeStamp += iFrameDuration;
+  // // timestamp when we think next picture should be displayed based on current duration
+  // m_FlipTimeStamp  = iCurrentClock;
+  // m_FlipTimeStamp += max(0.0, iSleepTime);
+  // m_FlipTimeStamp += iFrameDuration;
 
-  while(m_av_clock->GetAbsoluteClock(false) < (iCurrentClock + iSleepTime + DVD_MSEC_TO_TIME(500)) )
-  {
-    OMXClock::OMXSleep(10);
-  }
+  // while(m_av_clock->GetAbsoluteClock(false) < (iCurrentClock + iSleepTime + DVD_MSEC_TO_TIME(500)) )
+  // {
+  //   OMXClock::OMXSleep(10);
+  // }
 
-  /*
-  printf("iPlayingClock %f iCurrentClock %f iClockSleep %f iFrameSleep %f iFrameDuration %f WaitAbsolut %f m_FlipTimeStamp %f pts %f\n", 
-      iPlayingClock / DVD_TIME_BASE, iCurrentClock  / DVD_TIME_BASE,
-      iClockSleep / DVD_TIME_BASE, iFrameSleep / DVD_TIME_BASE,
-      iFrameDuration / DVD_TIME_BASE, (iCurrentClock + iSleepTime) / DVD_TIME_BASE, m_FlipTimeStamp / DVD_TIME_BASE, 
-      pts / DVD_TIME_BASE);
-  */
+  // /*
+  // printf("iPlayingClock %f iCurrentClock %f iClockSleep %f iFrameSleep %f iFrameDuration %f WaitAbsolut %f m_FlipTimeStamp %f pts %f\n", 
+  //     iPlayingClock / DVD_TIME_BASE, iCurrentClock  / DVD_TIME_BASE,
+  //     iClockSleep / DVD_TIME_BASE, iFrameSleep / DVD_TIME_BASE,
+  //     iFrameDuration / DVD_TIME_BASE, (iCurrentClock + iSleepTime) / DVD_TIME_BASE, m_FlipTimeStamp / DVD_TIME_BASE, 
+  //     pts / DVD_TIME_BASE);
+  // */
 
-  //g_renderManager.FlipPage(CThread::m_bStop, (iCurrentClock + iSleepTime) / DVD_TIME_BASE, -1, mDisplayField);
+  // //g_renderManager.FlipPage(CThread::m_bStop, (iCurrentClock + iSleepTime) / DVD_TIME_BASE, -1, mDisplayField);
 
-  m_av_clock->WaitAbsoluteClock((iCurrentClock + iSleepTime));
+  // m_av_clock->WaitAbsoluteClock((iCurrentClock + iSleepTime));
 
-  // guess next frame pts. iDuration is always valid
-  if (m_speed != 0)
-    m_pts += m_frametime * m_speed / abs(m_speed);
+  // // guess next frame pts. iDuration is always valid
+  // if (m_speed != 0)
+  //   m_pts += m_frametime * m_speed / abs(m_speed);
 }
 
 bool OMXPlayerVideo::Decode(OMXPacket *pkt)
@@ -346,27 +353,28 @@ void OMXPlayerVideo::Process()
 
 void OMXPlayerVideo::Flush()
 {
-  Lock();
-  LockDecoder();
-  m_flush = true;
-  while (!m_packets.empty())
-  {
-    OMXPacket *pkt = m_packets.front(); 
-    m_packets.pop_front();
-    OMXReader::FreePacket(pkt);
-  }
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_cached_size = 0;
+  assert(0);
+  // Lock();
+  // LockDecoder();
+  // m_flush = true;
+  // while (!m_packets.empty())
+  // {
+  //   OMXPacket *pkt = m_packets.front(); 
+  //   m_packets.pop_front();
+  //   OMXReader::FreePacket(pkt);
+  // }
+  // m_iCurrentPts = DVD_NOPTS_VALUE;
+  // m_cached_size = 0;
 
-  m_av_clock->OMXStop(false);
-  if(m_decoder)
-    m_decoder->Reset();
-  m_av_clock->OMXReset(false);
-  m_av_clock->UnLock();
+  // m_av_clock->OMXStop(false);
+  // if(m_decoder)
+  //   m_decoder->Reset();
+  // m_av_clock->OMXReset(false);
+  // m_av_clock->UnLock();
 
-  m_syncclock = true;
-  UnLockDecoder();
-  UnLock();
+  // m_syncclock = true;
+  // UnLockDecoder();
+  // UnLock();
 }
 
 bool OMXPlayerVideo::AddPacket(OMXPacket *pkt)
@@ -411,8 +419,8 @@ bool OMXPlayerVideo::OpenDecoder()
 
   m_frametime = (double)DVD_TIME_BASE / m_fps;
 
-  m_av_clock->Lock();
-  m_av_clock->OMXStop(false);
+  // m_av_clock->Lock();
+  // m_av_clock->OMXStop(false);
 
   m_decoder = new COMXVideo();
   bool bVideoDecoderOpen = m_decoder->Open(m_hints, m_av_clock, m_display_aspect, m_Deinterlace, m_hdmi_clock_sync);
@@ -428,28 +436,28 @@ bool OMXPlayerVideo::OpenDecoder()
     printf("Video codec %s width %d height %d profile %d fps %f\n",
         m_decoder->GetDecoderName().c_str() , m_hints.width, m_hints.height, m_hints.profile, m_fps);
 
-    if(m_av_clock)
-      m_av_clock->SetRefreshRate(m_fps);
+    // if(m_av_clock)
+    //   m_av_clock->SetRefreshRate(m_fps);
   }
 
-  m_av_clock->OMXStateExecute(false);
-  m_av_clock->HasVideo(bVideoDecoderOpen);
-  m_av_clock->OMXReset(false);
-  m_av_clock->UnLock();
+  // m_av_clock->OMXStateExecute(false);
+  // m_av_clock->HasVideo(bVideoDecoderOpen);
+  // m_av_clock->OMXReset(false);
+  // m_av_clock->UnLock();
 
   return bVideoDecoderOpen;
 }
 
 bool OMXPlayerVideo::CloseDecoder()
 {
-  m_av_clock->Lock();
-  m_av_clock->OMXStop(false);
+  // m_av_clock->Lock();
+  // m_av_clock->OMXStop(false);
   if(m_decoder)
     delete m_decoder;
   m_decoder   = NULL;
-  m_av_clock->HasVideo(false);
-  m_av_clock->OMXReset(false);
-  m_av_clock->UnLock();
+  // m_av_clock->HasVideo(false);
+  // m_av_clock->OMXReset(false);
+  // m_av_clock->UnLock();
 
   return true;
 }
