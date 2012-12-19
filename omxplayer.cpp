@@ -614,7 +614,7 @@ int main(int argc, char *argv[])
     goto do_exit;
 
   m_bMpeg         = m_omx_reader.IsMpegVideo();
-  m_has_video     = m_omx_reader.VideoStreamCount();
+  // m_has_video     = m_omx_reader.VideoStreamCount();
   m_has_audio     = m_omx_reader.AudioStreamCount();
   m_has_subtitle  = m_has_external_subtitles ||
                     m_omx_reader.SubtitleStreamCount();
@@ -698,7 +698,6 @@ int main(int argc, char *argv[])
                                          m_boost_on_downmix, m_thread_player))
     goto do_exit;
 
-  // m_av_clock->SetSpeed(DVD_PLAYSPEED_NORMAL);
   m_av_clock->OMXStateExecute();
   m_av_clock->OMXReset();
 
@@ -835,7 +834,7 @@ int main(int argc, char *argv[])
         }
         break;
       case 's':
-        start_ = true;
+       m_av_clock->OMXSetSpeed(DVD_PLAYSPEED_NORMAL);
 
         // if(m_has_subtitle)
         // {
@@ -844,11 +843,13 @@ int main(int argc, char *argv[])
         // }
         break;
       case 'd':
-        if(m_has_subtitle && m_player_subtitles->GetVisible())
-        {
-          m_player_subtitles->SetDelay(m_player_subtitles->GetDelay() - 250);
-          PrintSubtitleInfo();
-        }
+        m_av_clock->OMXSetSpeed(DVD_PLAYSPEED_PAUSE);
+
+        // if(m_has_subtitle && m_player_subtitles->GetVisible())
+        // {
+        //   m_player_subtitles->SetDelay(m_player_subtitles->GetDelay() - 250);
+        //   PrintSubtitleInfo();
+        // }
         break;
       case 'f':
         if(m_has_subtitle && m_player_subtitles->GetVisible())
@@ -915,9 +916,9 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    printf("%f\n", m_av_clock->OMXMediaTime());
+    // printf("%f\n", m_av_clock->OMXMediaTime());
 
-    lambdaQueue.execute();
+    // lambdaQueue.execute();
 
     if(m_incr != 0 && !m_bMpeg)
     {
@@ -953,7 +954,7 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    /* when the audio buffer runs under 0.1 seconds we buffer up */
+    // /* when the audio buffer runs under 0.1 seconds we buffer up */
     // if(m_has_audio)
     // {
     //   if(m_player_audio->GetDelay() < 0.1f && !m_buffer_empty)

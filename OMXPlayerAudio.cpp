@@ -522,8 +522,6 @@ bool OMXPlayerAudio::AddPacket(OMXPacket *pkt)
     ret = true;
     pthread_cond_broadcast(&m_packet_cond);
   }
-  else
-    CLog::Log(LOGDEBUG, "Buffer full");
 
   return ret;
 }

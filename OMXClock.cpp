@@ -310,7 +310,7 @@ bool OMXClock::OMXSetReferenceClock(bool lock /* = true */)
   // else
   //   refClock.eClock = OMX_TIME_RefClockVideo;
 
-  refClock.eClock = OMX_TIME_RefClockVideo;
+  refClock.eClock = OMX_TIME_RefClockAudio;
 
   // CLog::Log(LOGNOTICE, "OMXClock using %s as reference\n", refClock.eClock == OMX_TIME_RefClockVideo ? "video" : "audio");
 
