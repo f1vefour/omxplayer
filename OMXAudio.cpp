@@ -45,8 +45,6 @@
 
 #include <algorithm>
 
-#include <csignal>
-
 using namespace std;
 
 #define OMX_MAX_CHANNELS 9
