@@ -24,6 +24,8 @@
 #include <string>
 #include <queue>
 #include <functional>
+#include <unordered_map>
+#include <mutex>
 
 // TODO: should this be in configure
 #ifndef OMX_SKIP64BIT
@@ -62,32 +64,36 @@ typedef struct omx_event {
 class DllLibOMXCore;
 class COMXCore;
 class COMXCoreComponent;
-class COMXCoreTunel;
+class COMXCoreTunnel;
 class COMXCoreClock;
 
-class COMXCoreTunel
+class COMXCoreTunnel
 {
 public:
-  COMXCoreTunel();
-  ~COMXCoreTunel();
+  COMXCoreTunnel()
+  : m_src_component(),
+    m_dst_component(),
+    m_src_port(),
+    m_dst_port(),
+    m_tunnel_set(),
+    m_src_is_supplier()
+  {}
 
-  void Initialize(COMXCoreComponent *src_component, unsigned int src_port, COMXCoreComponent *dst_component, unsigned int dst_port);
-  bool IsInitialized();
-  OMX_ERRORTYPE Flush();
-  OMX_ERRORTYPE Deestablish(bool noWait = false);
-  OMX_ERRORTYPE Establish(bool portSettingsChanged, bool enable_ports = true);
+  void Initialize(COMXCoreComponent *src_component, unsigned int src_port,
+                  COMXCoreComponent *dst_component, unsigned int dst_port);
+  void Establish();
+  void Deestablish();
+  void Flush();
+  void EnablePorts();
+  void DisablePorts();
+
 private:
-  pthread_mutex_t   m_lock;
-  bool              m_portSettingsChanged;
   COMXCoreComponent *m_src_component;
   COMXCoreComponent *m_dst_component;
   unsigned int      m_src_port;
   unsigned int      m_dst_port;
-  DllOMX            *m_DllOMX;
-  bool              m_DllOMXOpen;
-  void              Lock();
-  void              UnLock();
   bool              m_tunnel_set;
+  bool              m_src_is_supplier;
 };
 
 class COMXCoreComponent
@@ -101,10 +107,9 @@ public:
   unsigned int      GetOutputPort()  { return m_output_port;   };
   std::string       GetName()        { return m_componentName; };
 
-  std::function<void()> portSettingsChangedHandler;
-
   OMX_ERRORTYPE DisableAllPorts();
   OMX_ERRORTYPE WaitForEvent(OMX_EVENTTYPE event, long timeout = 300);
+  void          SetEventListener(OMX_EVENTTYPE eEvent, std::function<void(OMX_U32, OMX_U32)>&& listener);
   OMX_ERRORTYPE WaitForCommand(OMX_U32 command, OMX_U32 nData2, long timeout = 2000);
   OMX_ERRORTYPE SetStateForComponent(OMX_STATETYPE state);
   OMX_STATETYPE GetState();
@@ -115,11 +120,12 @@ public:
   OMX_ERRORTYPE SendCommand(OMX_COMMANDTYPE cmd, OMX_U32 cmdParam, OMX_PTR cmdParamData);
   OMX_ERRORTYPE EnablePort(unsigned int port, bool wait = true);
   OMX_ERRORTYPE DisablePort(unsigned int port, bool wait = true);
+  bool          IsEnabled(unsigned int port);
   OMX_ERRORTYPE UseEGLImage(OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_U32 nPortIndex, OMX_PTR pAppPrivate, void* eglImage);
 
   bool          Initialize( const std::string &component_name, OMX_INDEXTYPE index);
   bool          IsInitialized();
-  bool          Deinitialize(bool free_component = false);
+  bool          Deinitialize(bool free_component = true);
 
   // OMXCore Decoder delegate callback routines.
   static OMX_ERRORTYPE DecoderEventHandlerCallback(OMX_HANDLETYPE hComponent, OMX_PTR pAppData,
@@ -138,6 +144,7 @@ public:
     OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer);
 
   void TransitionToStateLoaded();
+  void TransitionToStateExecuting();
 
   OMX_ERRORTYPE EmptyThisBuffer(OMX_BUFFERHEADERTYPE *omx_buffer);
   OMX_ERRORTYPE FillThisBuffer(OMX_BUFFERHEADERTYPE *omx_buffer);
@@ -178,6 +185,9 @@ private:
   pthread_mutex_t   m_omx_eos_mutex;
   pthread_mutex_t   m_lock;
   std::vector<omx_event> m_omx_events;
+
+  std::unordered_map<unsigned int, std::function<void(OMX_U32, OMX_U32)>> m_event_listeners;
+  std::mutex m_event_listeners_lock;
 
   OMX_CALLBACKTYPE  m_callbacks;
 

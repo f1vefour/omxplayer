@@ -614,7 +614,7 @@ int main(int argc, char *argv[])
     goto do_exit;
 
   m_bMpeg         = m_omx_reader.IsMpegVideo();
-  // m_has_video     = m_omx_reader.VideoStreamCount();
+  m_has_video     = m_omx_reader.VideoStreamCount();
   m_has_audio     = m_omx_reader.AudioStreamCount();
   m_has_subtitle  = m_has_external_subtitles ||
                     m_omx_reader.SubtitleStreamCount();
@@ -698,12 +698,13 @@ int main(int argc, char *argv[])
                                          m_boost_on_downmix, m_thread_player))
     goto do_exit;
 
-  m_av_clock->OMXStateExecute();
   m_av_clock->OMXReset();
 
   struct timespec starttime, endtime;
 
   PrintSubtitleInfo();
+
+  double startpts;
 
   while(!m_stop)
   {
@@ -754,7 +755,7 @@ int main(int argc, char *argv[])
         if(m_has_audio)
         {
           int new_index = m_omx_reader.GetAudioIndex() - 1;
-          if (new_index >= 0)
+          if(new_index >= 0)
           {
             m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, new_index);
             Seek(0);
@@ -764,8 +765,12 @@ int main(int argc, char *argv[])
       case 'k':
         if(m_has_audio)
         {
-          m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, m_omx_reader.GetAudioIndex() + 1);
-          Seek(0);
+          int new_index = m_omx_reader.GetAudioIndex() + 1;
+          if(new_index < m_omx_reader.AudioStreamCount())
+          {
+            m_omx_reader.SetActiveStream(OMXSTREAM_AUDIO, new_index);
+            Seek(0);
+          }
         }
         break;
       case 'i':
@@ -916,7 +921,7 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    // printf("%f\n", m_av_clock->OMXMediaTime());
+    printf("%f\n", m_av_clock->OMXMediaTime());
 
     // lambdaQueue.execute();
 

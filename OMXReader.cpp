@@ -386,7 +386,7 @@ bool OMXReader::SeekTime(int64_t seek_ms, int seek_flags, double *startpts)
     return true;
   }
 
-  int ret = m_dllAvFormat.av_seek_frame(m_pFormatContext, -1, seek_pts, seek_flags ? AVSEEK_FLAG_BACKWARD : 0);
+  int ret = m_dllAvFormat.av_seek_frame(m_pFormatContext, -1, seek_pts, seek_flags);
 
   if(ret >= 0)
   {

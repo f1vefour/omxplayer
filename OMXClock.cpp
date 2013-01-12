@@ -343,7 +343,7 @@ bool OMXClock::OMXInitialize(bool has_video, bool has_audio)
   if(!m_omx_clock.Initialize((const std::string)componentName, OMX_IndexParamOtherInit))
     return false;
 
-  m_omx_clock.DisableAllPorts();
+  m_omx_clock.TransitionToStateExecuting();
 
   if(!OMXSetReferenceClock(false))
     return false;

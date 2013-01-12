@@ -342,6 +342,7 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
      old_bitrate           != new_bitrate ||
      m_hints.bitspersample != pkt->hints.bitspersample)
   {
+    assert(0);
     printf("C : %d %d %d %d %d\n", m_hints.codec, m_hints.channels, m_hints.samplerate, m_hints.bitrate, m_hints.bitspersample);
     printf("N : %d %d %d %d %d\n", pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
 
@@ -376,6 +377,7 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
       int len = m_pAudioCodec->Decode((BYTE *)data_dec, data_len);
       if( (len < 0) || (len >  data_len) )
       {
+        assert(0);
         m_pAudioCodec->Reset();
         break;
       }
@@ -387,10 +389,17 @@ bool OMXPlayerAudio::Decode(OMXPacket *pkt)
       int decoded_size = m_pAudioCodec->GetData(&decoded);
 
       if(decoded_size <=0)
+      {
+        assert(0);
         continue;
+      }
 
-      if((unsigned) decoded_size > m_decoder->GetSpace())
-        return false;
+      while ((unsigned) decoded_size > m_decoder->GetSpace())
+      {
+        if (m_bStop || m_bAbort)
+          return true;
+        OMXClock::OMXSleep(10);
+      }
 
       int ret = 0;
 

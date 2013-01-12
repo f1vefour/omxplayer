@@ -43,7 +43,9 @@
 #include "OMXStreamInfo.h"
 #include "BitstreamConverter.h"
 
-#include <mutex>
+#include <memory>
+#include "utils/Active.h"
+
 
 #define AUDIO_BUFFER_SECONDS 2
 #define VIS_PACKET_SIZE 3840
@@ -100,7 +102,9 @@ public:
   unsigned int SyncAC3(BYTE* pData, unsigned int iSize);
 
 private:
-  std::recursive_mutex m_mutex;
+  void PortSettingsChanged();
+
+  std::unique_ptr<util::active> m_active;
   IAudioCallback* m_pCallback;
   bool          m_Initialized;
   bool          m_Pause;
@@ -141,9 +145,9 @@ protected:
   COMXCoreComponent m_omx_render;
   COMXCoreComponent m_omx_mixer;
   COMXCoreComponent m_omx_decoder;
-  COMXCoreTunel     m_omx_tunnel_clock;
-  COMXCoreTunel     m_omx_tunnel_mixer;
-  COMXCoreTunel     m_omx_tunnel_decoder;
+  COMXCoreTunnel     m_omx_tunnel_clock;
+  COMXCoreTunnel     m_omx_tunnel_mixer;
+  COMXCoreTunnel     m_omx_tunnel_decoder;
   DllAvUtil         m_dllAvUtil;
 };
 #endif
